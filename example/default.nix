@@ -1,4 +1,13 @@
-{ config, lib, modulesPath, pkgs, ... }: {
+{ config, inputs, lib, modulesPath, pkgs, ... }: {
+  imports = [
+    ../rpi
+  ];
+  nixpkgs.hostPlatform = "aarch64-linux";
+  # TODO: stop using overlays
+  nixpkgs.overlays = [
+    (import ../overlays { inherit inputs; })
+    (import ../overlays/libcamera.nix { inherit inputs; })
+  ];
   time.timeZone = "America/New_York";
   users.users.root.initialPassword = "root";
   networking = {

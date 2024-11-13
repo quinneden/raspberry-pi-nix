@@ -1,8 +1,5 @@
-{ rpicam-apps-src
-, libcamera-src
-, libpisp-src
-, ...
-}:
+{ inputs, ... }:
+with inputs;
 final: prev: {
   # A recent known working version of rpicam-apps
   libcamera-apps =

@@ -1,11 +1,5 @@
-{ u-boot-src
-, rpi-linux-6_6_54-src
-, rpi-linux-6_10_12-src
-, rpi-firmware-src
-, rpi-firmware-nonfree-src
-, rpi-bluez-firmware-src
-, ...
-}:
+{ inputs, ... }:
+with inputs;
 final: prev:
 let
   versions = {
@@ -114,7 +108,7 @@ in
 
 } // {
   # rpi kernels and firmware are available at
-  # `pkgs.rpi-kernels.<VERSION>.<BOARD>'. 
+  # `pkgs.rpi-kernels.<VERSION>.<BOARD>'.
   #
   # For example: `pkgs.rpi-kernels.v6_6_54.bcm2712'
   rpi-kernels = rpi-kernels (
