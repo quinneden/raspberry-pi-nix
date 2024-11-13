@@ -6,9 +6,10 @@ let
   version = cfg.kernel-version;
   board = cfg.board;
   kernel = config.system.build.kernel;
+  atomicCopy = import ../atomic-copy/atomic-copy.nix { inherit pkgs; };
 in
 {
-  imports = [ ../sd-image ./config.nix ./i2c.nix ];
+  imports = [ ../generic-extlinux-compatible ./config.nix ./i2c.nix ];
 
   options = with lib; {
     raspberry-pi-nix = {
@@ -71,6 +72,12 @@ in
 
         package = mkPackageOption pkgs "uboot-rpi-arm64" { };
       };
+      firmwareDir = mkOption {
+        description = "The path where config.txt, firmware files and u-boot gets copied to";
+        type = types.str;
+        # TODO: this should be /boot/firmware
+        default = "/boot";
+      };
     };
   };
 
@@ -93,7 +100,7 @@ in
             {
               Type = "oneshot";
               MountImages =
-                "/dev/disk/by-label/${config.sdImage.firmwarePartitionName}:${firmware-path}";
+                "/dev/disk/by-label/ESP:${firmware-path}";
               StateDirectory = "raspberrypi-firmware";
               ExecStart = pkgs.writeShellScript "migrate-rpi-firmware" ''
                 shopt -s nullglob
@@ -308,7 +315,7 @@ in
           # table, so the partition table id is a 1-indexed hex
           # number. So, we drop the hex prefix and stick on a "02" to
           # refer to the root partition.
-          "root=PARTUUID=${lib.strings.removePrefix "0x" config.sdImage.firmwarePartitionID}-02"
+          "root=PARTUUID=${lib.strings.removePrefix "0x" "TODO.config.sdImage.firmwarePartitionID"}-02"
           "rootfstype=ext4"
           "fsck.repair=yes"
           "rootwait"
@@ -327,11 +334,31 @@ in
       loader = {
         grub.enable = lib.mkDefault false;
         initScript.enable = !cfg.uboot.enable;
-        generic-extlinux-compatible = {
+
+        generic-extlinux-compatible.enable = false;
+        generic-extlinux-compatible-pi-loader = {
           enable = lib.mkDefault cfg.uboot.enable;
           # We want to use the device tree provided by firmware, so don't
           # add FDTDIR to the extlinux conf file.
           useGenerationDeviceTree = false;
+          extraCommandsAfter = let
+            configTxt = config.hardware.raspberry-pi.config-output;
+            script = pkgs.writeShellScript "cp-pi-loaders.sh" ''
+              # Add u-boot files
+              ${atomicCopy} ${cfg.uboot.package}/u-boot.bin ${cfg.firmwareDir}/u-boot-rpi-arm64.bin
+
+              # Add raspi files
+              cd ${pkgs.raspberrypifw}/share/raspberrypi/boot
+              ${atomicCopy} bootcode.bin ${cfg.firmwareDir}/bootcode.bin
+              ${atomicCopy} overlays     ${cfg.firmwareDir}/overlays
+              ${pkgs.findutils}/bin/find . -type f -name 'fixup*.dat' -exec ${atomicCopy} {} ${cfg.firmwareDir}/{} \;
+              ${pkgs.findutils}/bin/find . -type f -name 'start*.elf' -exec ${atomicCopy} {} ${cfg.firmwareDir}/{} \;
+              ${pkgs.findutils}/bin/find . -type f -name '*.dtb'      -exec ${atomicCopy} {} ${cfg.firmwareDir}/{} \;
+
+              # Add config.txt
+              ${atomicCopy} ${configTxt} ${cfg.firmwareDir}/config.txt
+            '';
+          in [ (toString script) ];
         };
       };
     };
