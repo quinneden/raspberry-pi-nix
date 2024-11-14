@@ -2,6 +2,7 @@
   imports = [
     ../rpi
   ];
+  system.stateVersion = "24.05";
   nixpkgs.hostPlatform = "aarch64-linux";
   # TODO: stop using overlays
   nixpkgs.overlays = [
@@ -18,7 +19,10 @@
       eth0.useDHCP = true;
     };
   };
-  raspberry-pi-nix.board = "bcm2711";
+  raspberry-pi-nix = {
+    board = "bcm2711";
+    uboot.enable = true;
+  };
   hardware = {
     raspberry-pi = {
       config = {
