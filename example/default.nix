@@ -9,6 +9,8 @@
     (import ../overlays { inherit inputs; })
     (import ../overlays/libcamera.nix { inherit inputs; })
   ];
+  boot.kernelParams = [ "console=serial0,115200n8" "console=tty1" "console=ttyAMA0" ];
+  boot.consoleLogLevel = 7;
   time.timeZone = "America/New_York";
   users.users.root.initialPassword = "root";
   networking = {
@@ -61,7 +63,7 @@
       fsType = "vfat";
     };
     "/" = {
-      device = "/dev/disk/by-label/NIXOS";
+      device = "/dev/disk/by-label/nixos";
       fsType = "ext4";
     };
   };
